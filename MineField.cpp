@@ -176,11 +176,11 @@ int miner::Move(std::vector<miner_move>& moves)
 		unsigned col = moves[i].col;
 		if(!CHECK_RANGE(row, col))
 			continue;
-		if(_field[cell_num].state != CELL_UNKNOWN) // actions only over unlnown cells (for a now)
-			continue;
 		switch(moves[i].action)
 		{
 		case ACTION_FLAG:
+			if(_field[cell_num].state != CELL_UNKNOWN) // actions only over unlnown cells (for a now)
+				continue;
 			_field[cell_num] = _mines->CheckCell(row, col, true);
 			break;
 		case ACTION_RANDOM:
@@ -188,13 +188,13 @@ int miner::Move(std::vector<miner_move>& moves)
 			row = cell_num / _cols;
 			col = cell_num % _cols;
 		case ACTION_SAFE:
+			if(_field[cell_num].state != CELL_UNKNOWN) // actions only over unlnown cells (for a now)
+				continue;
 			_field[cell_num] = _mines->CheckCell(row, col);
 			if(_field[cell_num].state == CELL_MINE)
 			{
 				res = i;
 				// here we can return from the function and stop the game
-				_mines->Reset();
-				Init(_mines);
 				return res;
 			}
 			break;

@@ -20,7 +20,8 @@ void cv_minefield::Reset()
 	if(!_last_frame)
 		return;
 	ClickAtPoint(_params.reset);
-	Sleep(100);
+	RefreshState();
+	Sleep(50);
 }
 mine_cell cv_minefield::CheckCell(unsigned row, unsigned col, bool flag)
 {
@@ -48,7 +49,7 @@ void cv_minefield::ClickMine(unsigned row, unsigned col, bool flag)
 	if(!_last_frame)
 		return;
 	ClickAtPoint(_params.cells[row * _params.cols + col], flag);
-	Sleep(100); // cells should be repainted
+	Sleep(50); // cells should be repainted
 }
 bool cv_minefield::RefreshState()
 {
@@ -71,7 +72,7 @@ void ClickAtPoint(cv::Point p, bool rmb)
     mouse_input.mi.dwFlags = rmb ? MOUSEEVENTF_RIGHTDOWN : MOUSEEVENTF_LEFTDOWN;
     mouse_input.mi.time = 0;
 	SendInput(1, &mouse_input, sizeof(INPUT));
-	Sleep(100);
+	Sleep(20);
 	mouse_input.mi.dwFlags = rmb ? MOUSEEVENTF_RIGHTUP : MOUSEEVENTF_LEFTUP;
 	SendInput(1, &mouse_input, sizeof(INPUT));
 }

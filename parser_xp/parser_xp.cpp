@@ -53,8 +53,8 @@ bool parser_xp::ParseROI(cv::Mat img_roi, field_params* params)
 		cv::Rect cell_rect(j * _params.size + 1, i * _params.size + 1, _params.size - 1, _params.size - 1);
 		_params.mines[i * _params.cols + j] = GetCell(field_roi(cell_rect));
 	}
-	_params.reset.x = field_rect.x + field_rect.y/2 + shift.x;
-	_params.reset.y = field_rect.y - 25 + shift.y;
+	_params.reset.x = field_rect.width/2 + shift.x;
+	_params.reset.y = shift.y - 25;
 	*params = _params;
 	return true;
 }

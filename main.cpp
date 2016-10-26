@@ -23,7 +23,11 @@ int main()
 	cvm.Reset(); // just activate game window, not reset
 	while(my_miner.PrepareMoves().size())
 	{
-		my_miner.Move();
+		if(my_miner.Move() != -1)
+		{
+			cvm.Reset();
+			my_miner.Init(&cvm);
+		}
 		//my_miner.Display();	
 		//Sleep(200);
 	}
