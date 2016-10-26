@@ -26,7 +26,7 @@ int main()
 		if(my_miner.Move() != -1)
 		{
 			cvm.Reset();
-			my_miner.Init(&cvm);
+			my_miner(_mines);
 		}
 		//my_miner.Display();	
 		//Sleep(200);
