@@ -9,7 +9,7 @@ using namespace cv;
 
 int main()
 {
-	mine_field_cpu_display minefield;
+	/*mine_field_cpu_display minefield;
 	minefield.Init(16, 30, 99);
 	minefield.Display();
 	miner_display my_miner;
@@ -24,8 +24,18 @@ int main()
 			minefield.Init(16, 30, 99);
 			my_miner.Init(&minefield);
 		}
+	}*/
+	cv_minefield cvm;
+	parser_xp pars;
+	dt_frames dtf;
+	/*cvm.SetParser(&pars);
+	cvm.SetFrameSource(&dtf);*/
+	field_params params;
+	while(waitKey(30) != 27)
+	{
+		pars.Parse(dtf.nextFrame(), &params);
+		pars.Display();
 	}
-	waitKey(0);
 	return 0;
 }
 /*

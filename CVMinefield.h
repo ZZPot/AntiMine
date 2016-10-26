@@ -36,7 +36,7 @@ public:
 	void SetParser(mine_parser* parser);
 	void SetFrameSource(cv::Ptr<cv::videostab::IFrameSource> frames);
 protected:
-	void SwapMine(unsigned row, unsigned col);
+	void ClickMine(unsigned row, unsigned col);
 	bool RefreshState();
 protected:
 	mine_parser* _parser;

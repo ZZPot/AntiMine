@@ -15,12 +15,11 @@ unsigned cv_minefield::GetCols()
 }
 mine_cell cv_minefield::CheckCell(unsigned row, unsigned col)
 {
-	if((IN_RANGE(row, 0, _params.rows-1) && IN_RANGE(col, 0, _params.cols-1)) ||
-		(row * _params.cols + col+1 > _params.mines.size()))
+	if(IN_RANGE(row, 0, _params.rows-1) && IN_RANGE(col, 0, _params.cols-1))
 		return mine_cell();
 	if(_params.mines[row * _params.cols + col].state == CELL_UNKNOWN)
 	{
-		SwapMine(row, col);
+		ClickMine(row, col);
 		if(!RefreshState())
 			return mine_cell();
 	}
@@ -32,9 +31,9 @@ void cv_minefield::SetParser(mine_parser* parser)
 }
 void cv_minefield::SetFrameSource(cv::Ptr<cv::videostab::IFrameSource> frames)
 {
-
+	_frames = frames;
 }
-void cv_minefield::SwapMine(unsigned row, unsigned col)
+void cv_minefield::ClickMine(unsigned row, unsigned col)
 {
 	// click at _params.cells[row * _params.cols + col]
 }
