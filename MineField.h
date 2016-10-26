@@ -37,9 +37,10 @@ class mine_field
 {
 public:
 	virtual ~mine_field(){}
-	virtual mine_cell CheckCell(unsigned row, unsigned col) = 0;
+	virtual mine_cell CheckCell(unsigned row, unsigned col, bool flag = false) = 0;
 	virtual unsigned GetRows() = 0;
 	virtual unsigned GetCols() = 0;
+	virtual void Reset() = 0;
 protected:
 };
 
@@ -50,7 +51,8 @@ public:
 	virtual ~mine_field_cpu();
 	virtual unsigned GetRows();
 	virtual unsigned GetCols();
-	virtual mine_cell CheckCell(unsigned row, unsigned col);
+	virtual void Reset();
+	virtual mine_cell CheckCell(unsigned row, unsigned col, bool flag = false);
 	void Init(unsigned rows, unsigned cols, unsigned mines_count);
 protected:
 	int CheckNear(unsigned row, unsigned col); // get number of near mines
@@ -60,6 +62,7 @@ protected:
 	bool* _mines;
 	unsigned _rows;
 	unsigned _cols;
+	unsigned _mines_count;
 	bool _first_move;
 	std::vector<unsigned> _safe;
 };

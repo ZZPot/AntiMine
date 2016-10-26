@@ -70,7 +70,7 @@ void DrawCell(cv::Mat img, cv::Rect rect, mine_cell cell)
 	{
 		char temp[5] = "";
 		sprintf(temp, "%d", cell.param);
-		rect.y += FONT_SIZE - 1;
+		rect.y += FONT_SIZE - 2;
 		rect.x += 3;
 		cv::putText(img, temp, rect.tl(), 
 				cv::FONT_HERSHEY_PLAIN, 1, text_color, 2);

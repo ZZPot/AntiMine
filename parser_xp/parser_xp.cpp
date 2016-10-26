@@ -2,6 +2,11 @@
 #include "FeatureDetector.h"
 #include <iostream>
 
+parser_xp::parser_xp()
+{
+	_params.cols = 0;
+	_params.rows = 0;
+}
 bool parser_xp::ParseROI(cv::Mat img_roi, field_params* params)
 {
 	img_roi = RemoveChannel(img_roi);
@@ -11,11 +16,6 @@ bool parser_xp::ParseROI(cv::Mat img_roi, field_params* params)
 	cv::inRange(img_roi, frame_colors_xp[1], frame_colors_xp[1], img_ranged[1]);
 	cv::Mat frames_ranged;	
 	cv::bitwise_or(img_ranged[0], img_ranged[1], frames_ranged);
-	
-	/*cv::imshow("roid", img_roi);
-	cv::imshow("asd", img_ranged[0]);
-	cv::imshow("asd1", img_ranged[1]);
-	cv::waitKey(0);*/
 
 	std::vector<type_condition> cond;
 	std::vector<int> checks;
@@ -53,11 +53,15 @@ bool parser_xp::ParseROI(cv::Mat img_roi, field_params* params)
 		cv::Rect cell_rect(j * _params.size + 1, i * _params.size + 1, _params.size - 1, _params.size - 1);
 		_params.mines[i * _params.cols + j] = GetCell(field_roi(cell_rect));
 	}
+	_params.reset.x = field_rect.x + field_rect.y/2 + shift.x;
+	_params.reset.y = field_rect.y - 25 + shift.y;
 	*params = _params;
-	return false;
+	return true;
 }
 void parser_xp::Display()
 {
+	if(!(_params.rows * _params.cols))
+		return;
 	cv::Mat img = cv::Mat(_params.size * _params.rows, _params.size * _params.cols, CV_8UC3);
 	cv::Rect rect(0, 0, _params.size, _params.size);
 	for(unsigned i = 0; i < _params.rows*_params.cols; i++)
@@ -126,7 +130,9 @@ std::vector<cv::Mat> templates_xp = {	cv::imread("parser_xp/res/0.bmp", cv::IMRE
 								cv::imread("parser_xp/res/7.bmp", cv::IMREAD_GRAYSCALE),
 								cv::imread("parser_xp/res/8.bmp", cv::IMREAD_GRAYSCALE),
 								cv::imread("parser_xp/res/flag.bmp", cv::IMREAD_GRAYSCALE),
-								cv::imread("parser_xp/res/mine.bmp", cv::IMREAD_GRAYSCALE)
+								cv::imread("parser_xp/res/mine.bmp", cv::IMREAD_GRAYSCALE),
+								cv::imread("parser_xp/res/reset.bmp", cv::IMREAD_GRAYSCALE)
 								};
 std::vector<cv::Scalar> frame_colors_xp = {	cv::Scalar::all(128),
-											cv::Scalar::all(255)};
+											cv::Scalar::all(255),
+											cv::Scalar(0, 255, 255)};

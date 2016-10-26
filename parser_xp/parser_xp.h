@@ -16,6 +16,7 @@ extern std::vector<cv::Scalar> field_colors_xp;
 class parser_xp: public parser_roi, public cells_display
 {
 public:
+	parser_xp();
 	bool ParseROI(cv::Mat img_roi, field_params* params);
 	void Display();
 protected:

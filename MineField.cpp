@@ -34,7 +34,11 @@ unsigned mine_field_cpu::GetCols()
 {
 	return _cols;
 }
-mine_cell mine_field_cpu::CheckCell(unsigned row, unsigned col)
+void mine_field_cpu::Reset()
+{
+	Init(_rows, _cols, _mines_count);
+}
+mine_cell mine_field_cpu::CheckCell(unsigned row, unsigned col, bool flag)
 {
 	if((row >= _rows) || (col >= _cols))
 		return mine_cell(CELL_MINE); // mine
@@ -47,7 +51,7 @@ mine_cell mine_field_cpu::CheckCell(unsigned row, unsigned col)
 	}
 	if(_mines[_cols * row + col])
 		return mine_cell(CELL_MINE); // mine
-	return mine_cell(CELL_SAFE, CheckNear(row, col));
+	return flag ? mine_cell(CELL_FLAG): mine_cell(CELL_SAFE, CheckNear(row, col));
 }
 void mine_field_cpu::Init(unsigned rows, unsigned cols, unsigned mines_count)
 {
@@ -55,6 +59,7 @@ void mine_field_cpu::Init(unsigned rows, unsigned cols, unsigned mines_count)
 		return;
 	if(mines_count >= (rows * cols))
 		return;
+	_mines_count = mines_count;
 	_rows = rows;
 	_cols = cols;
 	_first_move = true;
@@ -65,7 +70,7 @@ void mine_field_cpu::Init(unsigned rows, unsigned cols, unsigned mines_count)
 	_safe.resize(rows * cols);
 	for(unsigned i = 0; i < rows * cols; i++)
 		_safe[i] = i;
-	for(unsigned i = 0; i < mines_count; i++)
+	for(unsigned i = 0; i < _mines_count; i++)
 	{
 		unsigned random_free = RandomFree();
 		_mines[_safe[random_free]] = true;
@@ -171,10 +176,12 @@ int miner::Move(std::vector<miner_move>& moves)
 		unsigned col = moves[i].col;
 		if(!CHECK_RANGE(row, col))
 			continue;
+		if(_field[cell_num].state != CELL_UNKNOWN) // actions only over unlnown cells (for a now)
+			continue;
 		switch(moves[i].action)
 		{
 		case ACTION_FLAG:
-			_field[cell_num].state = CELL_FLAG;
+			_field[cell_num] = _mines->CheckCell(row, col, true);
 			break;
 		case ACTION_RANDOM:
 			cell_num = _unknown[RandomUnknown()];
@@ -186,6 +193,9 @@ int miner::Move(std::vector<miner_move>& moves)
 			{
 				res = i;
 				// here we can return from the function and stop the game
+				_mines->Reset();
+				Init(_mines);
+				return res;
 			}
 			break;
 		}
