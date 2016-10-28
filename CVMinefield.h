@@ -9,6 +9,9 @@
 #include "opencv2/videostab.hpp"
 #include "opencv2/opencv_modules.hpp"
 
+//#define PARSE_FULL // parse all ROI all the time
+#define PARSE_SINGLE // parse only one cell
+
 struct field_params
 {
 	unsigned rows;
@@ -24,6 +27,8 @@ class mine_parser
 public:
 	virtual ~mine_parser(){}
 	virtual bool Parse(cv::Mat img, field_params* params) = 0;
+	virtual mine_cell ParseCell(cv::Mat img, unsigned row, unsigned col) = 0;
+	virtual void Reset() = 0; // if it stores some info
 };
 
 class cv_minefield: public mine_field

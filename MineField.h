@@ -1,9 +1,11 @@
 #pragma once
 #include <vector>
 #include <set>
+#include <opencv2/core.hpp>
 
 #define IN_RANGE(val, _min, _max) ((_min) <= (val)) &&  ((val) <= (_max))
 #define CHECK_RANGE(row_num, col_num) (IN_RANGE((row_num), 0, _rows-1) && IN_RANGE((col_num), 0, _cols-1))
+//#define MARK_FLAG
 
 enum cell_state
 {
@@ -11,6 +13,8 @@ enum cell_state
 	CELL_FLAG,
 	CELL_SAFE,
 	CELL_MINE,
+	CELL_ERROR,
+	CELL_BORDER,
 	CELL_MAX
 };
 struct mine_cell
@@ -29,10 +33,25 @@ struct miner_move
 {
 	miner_move(miner_action act = ACTION_RANDOM, unsigned r = 0, unsigned c = 0);
 	miner_action action;
-	unsigned row;
-	unsigned col;
+	int row;
+	int col;
 	mine_cell result;
 };
+
+#define FP_STATE		0x01
+#define FP_PARAM		0x02
+
+struct field_pattern
+{
+	field_pattern();
+	std::vector<std::vector<mine_cell>> field_part;
+	std::vector<int> checks; // negative == not, -1 * (FP_STATE) = not specified state
+	unsigned cols;
+	std::vector<miner_move> moves;
+};
+field_pattern Rotate90(field_pattern pattern); // CW rotate
+field_pattern MirrorHor(field_pattern pattern); // Horizontal mirror
+
 class mine_field
 {
 public:
@@ -80,6 +99,7 @@ protected:
 	std::vector<unsigned> GetNear(unsigned row, unsigned col);
 	void MarkAllNearChanged();
 	unsigned RandomUnknown();
+	std::vector<miner_move> CheckPattern(field_pattern pattern);
 protected:
 	mine_field* _mines;
 	unsigned _rows;
@@ -90,3 +110,7 @@ protected:
 	std::set<unsigned>	_changed;
 	std::vector<miner_move> _prepared_moves;
 };
+
+std::vector<cv::Point> CheckPattern(const std::vector<mine_cell>& field, cv::Size field_size, field_pattern& pattern);
+bool CheckPattern(const std::vector<mine_cell>& field, cv::Size field_size, field_pattern& pattern, cv::Point point);
+bool ComparePatterns(field_pattern& pattern1, field_pattern& pattern2);

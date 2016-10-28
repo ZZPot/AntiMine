@@ -21,7 +21,18 @@ bool parser_roi::Parse(cv::Mat img, field_params* params)
 	cv::Mat img_roi = img(_roi);
 	return ParseROI(img_roi, params);
 }
-
+mine_cell parser_roi::ParseCell(cv::Mat img, unsigned row, unsigned col)
+{
+	if(_first_call)
+	{
+		_first_call = false;
+		std::string temp_name = CreateRandomName(5);
+		_roi = cv::selectROI(temp_name, img);
+		cv::destroyWindow(temp_name);
+	}
+	cv::Mat img_roi = img(_roi);
+	return ParseCellROI(img_roi, row, col);
+}
 std::string CreateRandomName(unsigned num_chars, std::string prefix, std::string postfix)
 {
 	std::string new_name = prefix;

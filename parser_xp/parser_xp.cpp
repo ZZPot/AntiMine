@@ -1,22 +1,20 @@
 #include "parser_xp.h"
 #include "FeatureDetector.h"
 #include <iostream>
-
+#pragma warning(disable: 4800)
 parser_xp::parser_xp()
 {
 	_params.cols = 0;
 	_params.rows = 0;
 }
-bool parser_xp::ParseROI(cv::Mat img_roi, field_params* params)
+cv::Rect parser_xp::GetFieldRect(cv::Mat img_roi)
 {
-	img_roi = RemoveChannel(img_roi);
-	// CHANNELS PROBLEM	
+	cv::Rect res;
 	cv::Mat img_ranged[2];
 	cv::inRange(img_roi, frame_colors_xp[0], frame_colors_xp[0], img_ranged[0]);
 	cv::inRange(img_roi, frame_colors_xp[1], frame_colors_xp[1], img_ranged[1]);
 	cv::Mat frames_ranged;	
 	cv::bitwise_or(img_ranged[0], img_ranged[1], frames_ranged);
-
 	std::vector<type_condition> cond;
 	std::vector<int> checks;
 	type_condition biggest;
@@ -28,35 +26,137 @@ bool parser_xp::ParseROI(cv::Mat img_roi, field_params* params)
 	checks.push_back(FEATURE_CHECK_SIZE);
 	std::vector<Obj2d> obj = FindObjects(frames_ranged, cond, checks, cv::RETR_EXTERNAL);
 	if(!obj.size())
-		return false;
-	cv::Rect field_rect = obj[0].rect;
-	field_rect.x += BORDER_THICKNESS;
-	field_rect.y += BORDER_THICKNESS;
-	field_rect.width -= BORDER_THICKNESS*2;
-	field_rect.height -= BORDER_THICKNESS*2;
-	cv::Mat field_roi = img_roi(field_rect);
+		return cv::Rect();
+	res = obj[0].rect;
+	res.x += BORDER_THICKNESS;
+	res.y += BORDER_THICKNESS;
+	res.width -= BORDER_THICKNESS*2;
+	res.height -= BORDER_THICKNESS*2;
+	return res;
+}
+bool parser_xp::ParseROI(cv::Mat img_roi, field_params* params)
+{
+#ifndef PARSE_FULL
+	if(!_params.cols)
+	{
+#endif
+		field_rect = GetFieldRect(img_roi);
+		if(field_rect.width == 0)
+			return false;
+		cv::Mat field_roi = img_roi(field_rect);
+		GetParams(field_roi);
+		if(_params.cols * _params.rows == 0)
+			return false;
+		cv::Point offset = _roi.tl(); // from the original image
+		offset.x += field_rect.x;
+		offset.y += field_rect.y;
+		_params.cells.resize(_params.rows * _params.cols);
+		_params.mines.resize(_params.rows * _params.cols);
+		for(unsigned i = 0; i < _params.rows; i++)
+		for(unsigned j = 0; j < _params.cols; j++)
+		{
+			cv::Point cell_p;
+			unsigned cell_num = i * _params.cols + j;
+			cell_p.x = j * _params.size + offset.x + _params.size/2; // center
+			cell_p.y = i * _params.size + offset.y + _params.size/2; // center
+			_params.cells[cell_num] = cell_p;
+			cv::Rect cell_rect(j * _params.size + 1, i * _params.size + 1, _params.size - 1, _params.size - 1);
+			_params.mines[cell_num] = GetCell(field_roi(cell_rect));
+			if(_params.mines[cell_num].state == CELL_ERROR)
+				return false;
+		}
+		_params.reset.x = field_rect.width/2 + offset.x;
+		_params.reset.y = offset.y - 25;
+#ifndef PARSE_FULL
+	}
+	else
+	{
+		cv::Mat field_roi = img_roi(field_rect);
+		// check only unknown
+		for(unsigned i = 0; i < _params.mines.size(); i++)
+		{
+			if( _params.mines[i].state != CELL_UNKNOWN) // we already know it
+				continue;
+			cv::Rect cell_rect((i % _params.cols) * _params.size + 1, (i / _params.cols) * _params.size + 1, _params.size - 1, _params.size - 1);
+			_params.mines[i] = GetCell(field_roi(cell_rect));
+			if(_params.mines[i].state == CELL_ERROR)
+			{
+#ifdef _DEBUG
+			std::cout<< "CELL_ERROR: "<< i / _params.cols << " " << i % _params.cols <<std::endl; 
+#endif
+				Reset();
+				return false;
+			}
+		}
+	}
+#endif
+	*params = _params;
+	return true;
+}
+mine_cell parser_xp::ParseCellROI(cv::Mat img_roi, unsigned row, unsigned col)
+{
+#ifndef PARSE_FULL
+	if(!_params.cols)
+	{
+#endif
+		field_rect = GetFieldRect(img_roi);
+		if(field_rect.width == 0)
+			return mine_cell(CELL_ERROR);
+		cv::Mat field_roi = img_roi(field_rect);
+		GetParams(field_roi);
+		if(_params.cols * _params.rows == 0)
+			return mine_cell(CELL_ERROR);
+		if(!(IN_RANGE(row, 0, _params.rows - 1) && IN_RANGE(col, 0, _params.cols - 1)))
+			return mine_cell(CELL_ERROR);
+		cv::Point offset = _roi.tl(); // from the original image
+		offset.x += field_rect.x;
+		offset.y += field_rect.y;
+		_params.cells.resize(_params.rows * _params.cols);
+		_params.mines.resize(_params.rows * _params.cols);
+		cv::Point cell_p;
+		unsigned cell_num = row * _params.cols + col;
+		cell_p.x = col * _params.size + offset.x + _params.size/2; // center
+		cell_p.y = row * _params.size + offset.y + _params.size/2; // center
+		_params.cells[cell_num] = cell_p;
+		cv::Rect cell_rect(col * _params.size + 1, row * _params.size + 1, _params.size - 1, _params.size - 1);
+		_params.mines[cell_num] = GetCell(field_roi(cell_rect));
+		return _params.mines[cell_num];
+#ifndef PARSE_FULL
+	}
+	else
+	{
+		if(!(IN_RANGE(row, 0, _params.rows) && IN_RANGE(col, 0, _params.cols)))
+			return mine_cell(CELL_ERROR);
+		cv::Mat field_roi = img_roi(field_rect);
+		unsigned cell_num = row * _params.cols + col;
+		if( _params.mines[cell_num].state != CELL_UNKNOWN) // we already know it
+			return _params.mines[cell_num];
+		cv::Rect cell_rect(col * _params.size + 1, row * _params.size + 1, _params.size - 1, _params.size - 1);
+		_params.mines[cell_num] = GetCell(field_roi(cell_rect));
+		if(_params.mines[cell_num].state == CELL_ERROR)
+		{
+#ifdef _DEBUG
+			std::cout<< "CELL_ERROR: "<< row << " " << col <<std::endl; 
+#endif
+			cv::imshow("err", field_roi);
+			cv::waitKey(0);
+			Reset();
+			return mine_cell(CELL_ERROR);
+		}
+		return _params.mines[cell_num];		
+	}
+#endif
+}
+void parser_xp::GetParams(cv::Mat field_roi)
+{
 	_params.rows = field_rect.height / CELL_SIZE;
 	_params.cols = field_rect.width / CELL_SIZE;
 	_params.size = CELL_SIZE; // it's always 16
-	cv::Point shift = _roi.tl(); // from the original image
-	shift.x += field_rect.x;
-	shift.y += field_rect.y;
-	_params.cells.resize(_params.rows * _params.cols);
-	_params.mines.resize(_params.rows * _params.cols);
-	for(unsigned i = 0; i < _params.rows; i++)
-	for(unsigned j = 0; j < _params.cols; j++)
-	{
-		cv::Point cell_p;
-		cell_p.x = j * _params.size + shift.x + _params.size/2; // center
-		cell_p.y = i * _params.size + shift.y + _params.size/2; // center
-		_params.cells[i * _params.cols + j] = cell_p;
-		cv::Rect cell_rect(j * _params.size + 1, i * _params.size + 1, _params.size - 1, _params.size - 1);
-		_params.mines[i * _params.cols + j] = GetCell(field_roi(cell_rect));
-	}
-	_params.reset.x = field_rect.width/2 + shift.x;
-	_params.reset.y = shift.y - 25;
-	*params = _params;
-	return true;
+}
+void parser_xp::Reset()
+{
+	_params.cols = 0; // yep, if cols == 0, that means that everything is fucked up and next time it parse all the image again.
+	_params.mines.clear();
 }
 void parser_xp::Display()
 {
@@ -74,7 +174,6 @@ void parser_xp::Display()
 }
 mine_cell GetCell(cv::Mat img)
 {
-	int res = -1;
 	for(unsigned i = 0; i < field_colors_xp.size(); i++)
 	{
 		cv::Mat img_ranged;
@@ -91,7 +190,11 @@ mine_cell GetCell(cv::Mat img)
 		return mine_cell(CELL_FLAG);
 	if(HasTemplate(img_ranged[1], templates_xp[10]))
 		return mine_cell(CELL_MINE);
-	return mine_cell();
+	cv::Mat unknown_ranged;
+	cv::inRange(img, field_colors_xp[0], field_colors_xp[0], unknown_ranged);
+	if(HasTemplate(unknown_ranged, templates_xp[11]))
+		return mine_cell(CELL_UNKNOWN);
+	return mine_cell(CELL_ERROR);
 }
 bool HasTemplate(cv::Mat img, cv::Mat temp)
 {
@@ -100,15 +203,6 @@ bool HasTemplate(cv::Mat img, cv::Mat temp)
 	matched.convertTo(matched, CV_8UC1);
 	matched = 255 - matched;
 	return cv::countNonZero(matched);
-}
-cv::Mat RemoveChannel(cv::Mat mat)
-{
-	std::vector<cv::Mat> channels;
-	cv::split(mat, channels);
-	channels.resize(3);
-	cv::Mat img;
-	cv::merge(channels, img);
-	return img;
 }
 std::vector<cv::Scalar> field_colors_xp = {	cv::Scalar(192, 192, 192),
 											cv::Scalar(255, 0, 0),	//1
@@ -131,6 +225,7 @@ std::vector<cv::Mat> templates_xp = {	cv::imread("parser_xp/res/0.bmp", cv::IMRE
 								cv::imread("parser_xp/res/8.bmp", cv::IMREAD_GRAYSCALE),
 								cv::imread("parser_xp/res/flag.bmp", cv::IMREAD_GRAYSCALE),
 								cv::imread("parser_xp/res/mine.bmp", cv::IMREAD_GRAYSCALE),
+								cv::imread("parser_xp/res/unknown.bmp", cv::IMREAD_GRAYSCALE),
 								cv::imread("parser_xp/res/reset.bmp", cv::IMREAD_GRAYSCALE)
 								};
 std::vector<cv::Scalar> frame_colors_xp = {	cv::Scalar::all(128),

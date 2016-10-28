@@ -20,8 +20,9 @@ void cv_minefield::Reset()
 	if(!_last_frame)
 		return;
 	ClickAtPoint(_params.reset);
+	_parser->Reset();
+	cv::waitKey(400); // full field repaint take time
 	RefreshState();
-	Sleep(50);
 }
 mine_cell cv_minefield::CheckCell(unsigned row, unsigned col, bool flag)
 {
@@ -30,9 +31,14 @@ mine_cell cv_minefield::CheckCell(unsigned row, unsigned col, bool flag)
 	if(_params.mines[row * _params.cols + col].state == CELL_UNKNOWN)
 	{
 		ClickMine(row, col, flag);
+#ifdef PARSE_SINGLE
+		_params.mines[row * _params.cols + col] = _parser->ParseCell(_frames->nextFrame(), row, col);
+		return  _params.mines[row * _params.cols + col];
+#else
 		RefreshState();
 		if(!_last_frame)
-			return mine_cell();
+			return mine_cell(CELL_ERROR);
+#endif
 	}
 	return _params.mines[row * _params.cols + col];
 }
@@ -49,7 +55,7 @@ void cv_minefield::ClickMine(unsigned row, unsigned col, bool flag)
 	if(!_last_frame)
 		return;
 	ClickAtPoint(_params.cells[row * _params.cols + col], flag);
-	Sleep(50); // cells should be repainted
+	cv::waitKey(30); // cells should be repainted
 }
 bool cv_minefield::RefreshState()
 {
@@ -72,7 +78,7 @@ void ClickAtPoint(cv::Point p, bool rmb)
     mouse_input.mi.dwFlags = rmb ? MOUSEEVENTF_RIGHTDOWN : MOUSEEVENTF_LEFTDOWN;
     mouse_input.mi.time = 0;
 	SendInput(1, &mouse_input, sizeof(INPUT));
-	Sleep(20);
+	//Sleep(20); // move that time into after-click delay
 	mouse_input.mi.dwFlags = rmb ? MOUSEEVENTF_RIGHTUP : MOUSEEVENTF_LEFTUP;
 	SendInput(1, &mouse_input, sizeof(INPUT));
 }

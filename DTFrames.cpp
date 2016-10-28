@@ -57,5 +57,14 @@ cv::Mat hwnd2mat(HWND hwnd)
     DeleteObject (hbwindow);
     DeleteDC(hwindowCompatibleDC);
     ReleaseDC(hwnd, hwindowDC);
-    return src;
+    return RemoveChannel(src);
+}
+cv::Mat RemoveChannel(cv::Mat mat)
+{
+	std::vector<cv::Mat> channels;
+	cv::split(mat, channels);
+	channels.resize(3);
+	cv::Mat img;
+	cv::merge(channels, img);
+	return img;
 }

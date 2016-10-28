@@ -1,9 +1,29 @@
 #define _CRT_RAND_S
 #include <stdlib.h> // for rand_s()
 #include "MineField.h"
+#include <iostream>
+#pragma warning(disable: 4267 4018)
 
-
-
+field_pattern::field_pattern()
+{
+	cols = 0;
+}
+field_pattern Rotate90(field_pattern pattern)
+{
+	field_pattern res;
+	/*
+	!!!!!!!!!!!!!!!!!!!!!
+	*/
+	return res;
+}
+field_pattern MirrorHor(field_pattern pattern)
+{
+	field_pattern res;
+	/*
+	!!!!!!!!!!!!!!!!!!!!!
+	*/
+	return res;
+}
 mine_cell::mine_cell(cell_state init_state, int init_param)
 {
 	state = init_state;
@@ -161,6 +181,9 @@ std::vector<miner_move> miner::PrepareMoves()
 	}
 	if(!_prepared_moves.size())
 		_prepared_moves.push_back(miner_move());
+#ifdef _DEBUG
+			std::cout<< "Prepeared moves: "<< _prepared_moves.size() << std::endl; 
+#endif
 	return _prepared_moves;
 }
 int miner::Move(std::vector<miner_move>& moves)
@@ -181,20 +204,36 @@ int miner::Move(std::vector<miner_move>& moves)
 		case ACTION_FLAG:
 			if(_field[cell_num].state != CELL_UNKNOWN) // actions only over unlnown cells (for a now)
 				continue;
+#ifdef MARK_FLAG
 			_field[cell_num] = _mines->CheckCell(row, col, true);
+#else
+			_field[cell_num] = mine_cell(CELL_FLAG);
+#endif
+#ifdef _DEBUG
+			std::cout<< "Flag: "<< row << " " << col << std::endl; 
+#endif
 			break;
 		case ACTION_RANDOM:
 			cell_num = _unknown[RandomUnknown()];
 			row = cell_num / _cols;
 			col = cell_num % _cols;
+#ifdef _DEBUG
+			std::cout<< "Random: "<< row << " " << col <<std::endl; 
+#endif
 		case ACTION_SAFE:
 			if(_field[cell_num].state != CELL_UNKNOWN) // actions only over unlnown cells (for a now)
 				continue;
 			_field[cell_num] = _mines->CheckCell(row, col);
+#ifdef _DEBUG
+			std::cout<< "Safe: "<< row << " " << col <<std::endl; 
+#endif
 			if(_field[cell_num].state == CELL_MINE)
 			{
 				res = i;
 				// here we can return from the function and stop the game
+#ifdef _DEBUG
+			std::cout<< "MINE!: "<< row << " " << col <<std::endl<<std::endl; 
+#endif 
 				return res;
 			}
 			break;
@@ -202,7 +241,9 @@ int miner::Move(std::vector<miner_move>& moves)
 		moves[i].result = _field[cell_num];
 		if(_field[cell_num].state == CELL_UNKNOWN) // can't check, skip
 			continue;
-		auto unk = find(_unknown.begin(), _unknown.end(), cell_num);
+		if(_field[cell_num].state == CELL_ERROR) // some shit happens
+			return res;
+		auto unk = find(_unknown.begin(), _unknown.end(), cell_num); // some times it may check same cell twice (should be fixed)
 		if(unk != _unknown.end())
 			_unknown.erase(unk);
 		_changed.insert(cell_num);
@@ -278,4 +319,100 @@ unsigned miner::RandomUnknown()
 	unsigned rand_num;
 	rand_s(&rand_num);
 	return rand_num % _unknown.size();
+}
+std::vector<miner_move> miner::CheckPattern(field_pattern pattern)
+{
+	std::vector<miner_move> res;
+	if(	!pattern.field_part.size() || 
+		!pattern.cols || 
+		(pattern.field_part.size() % pattern.cols))
+		return res;
+	if(pattern.field_part.size() != pattern.checks.size())
+		return res;
+	cv::Size field_size(_cols, _rows);
+	for(unsigned j = 0; j < 2; j++)
+	{
+		for(unsigned i = 0; i < 4; i++)
+		{
+			std::vector<cv::Point> offests = ::CheckPattern(_field, field_size, pattern);
+			for(auto offset: offests)
+			{
+				for(auto move: pattern.moves)
+				{
+					move.row += offset.y;
+					move.col += offset.x;
+					res.push_back(move);
+				}
+			}
+			pattern = Rotate90(pattern);
+		}
+		pattern = MirrorHor(pattern);
+	}
+	return res;
+}
+std::vector<cv::Point> CheckPattern(const std::vector<mine_cell>& field, cv::Size field_size, field_pattern& pattern)
+{
+	std::vector<cv::Point> res;
+	if((pattern.field_part.size() / pattern.cols > field_size.height + 2) || 
+		(pattern.cols > field_size.width + 2)) // maximum size is field_size with 1-cell border (both sides, so +2)
+		return res;
+	/*
+		Check pattern!!!!!!!!!!!!!!
+	*/
+	return res;
+}
+bool CheckPattern(const std::vector<mine_cell>& field, cv::Size field_size, field_pattern& pattern, cv::Point point)
+{
+	bool res = false;
+	cv::Size pattern_size(pattern.cols, pattern.field_part.size()/pattern.cols);
+	field_pattern minefield_pattern;
+	minefield_pattern.field_part.resize(pattern.field_part.size());
+	minefield_pattern.cols = pattern.cols;
+	for(unsigned i = 0; i < pattern_size.height; i++)
+	for(unsigned j = 0; j < pattern_size.width; j++)
+	{
+		int row_num = i + point.y; // signed type because it can be out of border (becomes CELL_BORDER)
+		int col_num = j + point.x;
+		int field_cell_num = row_num * field_size.width + col_num;
+		unsigned pattern_cell_num = i * pattern_size.width + j;
+		if(IN_RANGE(row_num, 0, field_size.height) && IN_RANGE(col_num, 0, field_size.width))
+		{
+			minefield_pattern.field_part[pattern_cell_num].push_back(field[field_cell_num]);
+		}
+		else
+		{
+			minefield_pattern.field_part[pattern_cell_num].push_back(mine_cell(CELL_BORDER));
+		}
+	}
+	return ComparePatterns(pattern, minefield_pattern);
+}
+bool ComparePatterns(field_pattern& pattern1, field_pattern& pattern2)
+{
+	if(pattern1.field_part.size() != pattern2.field_part.size())
+		return false;
+	for(unsigned i = 0; i < pattern1.field_part.size(); i++)
+	{
+		int check = pattern1.checks[i];
+		bool not = check < 0 ? true : false;
+		check = abs(check);
+		bool temp_res = false;
+		for(auto cell_variant: pattern1.field_part[i])
+		{
+			if(check & FP_STATE) // check state
+			{
+			
+				if(cell_variant.state == pattern2.field_part[i][0].state)
+					temp_res = true;
+			}
+			if(check & FP_PARAM) // check param (why?)
+			{
+				if(cell_variant.param == pattern2.field_part[i][0].param)
+					temp_res = true;
+			}
+		}
+		temp_res = not ? !temp_res : temp_res;
+		if(!temp_res)
+			return false;
+	}
+	return true;
 }

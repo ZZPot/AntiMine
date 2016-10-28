@@ -20,16 +20,25 @@ int main()
 	miner_display my_miner;
 	my_miner.Init(&cvm);
 	//my_miner.Display();	
+	//pars.Display();
+	waitKey(0);
 	cvm.Reset(); // just activate game window, not reset
 	while(my_miner.PrepareMoves().size())
 	{
-		if(my_miner.Move() != -1)
+		int res = my_miner.Move();
+		//pars.Display();
+		//my_miner.Display();
+		//cvm.RefreshState();
+		//waitKey(20);
+		if(res != -1)
 		{
 			cvm.Reset();
-			my_miner(_mines);
-		}
-		//my_miner.Display();	
-		//Sleep(200);
+			my_miner.Init(&cvm);
+		}		
 	}
+#ifdef _DEBUG
+			std::cout<< "Complete" << std::endl; 
+#endif
+	waitKey(0);
 	return 0;
 }

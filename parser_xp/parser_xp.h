@@ -16,13 +16,18 @@ extern std::vector<cv::Scalar> field_colors_xp;
 class parser_xp: public parser_roi, public cells_display
 {
 public:
-	parser_xp();
-	bool ParseROI(cv::Mat img_roi, field_params* params);
+	parser_xp();	
+	void Reset();
 	void Display();
 protected:
+	cv::Rect GetFieldRect(cv::Mat img_roi);
+	bool ParseROI(cv::Mat img_roi, field_params* params);
+	mine_cell ParseCellROI(cv::Mat img_roi, unsigned row, unsigned col);
+	void GetParams(cv::Mat field_roi);
+protected:
 	field_params _params;
+	cv::Rect field_rect;
 };
 
 mine_cell GetCell(cv::Mat img);
 bool HasTemplate(cv::Mat img, cv::Mat temp);
-cv::Mat RemoveChannel(cv::Mat mat);
