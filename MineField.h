@@ -52,7 +52,8 @@ struct field_pattern
 bool CheckPatternValid(const field_pattern& pattern);
 field_pattern Rotate90(field_pattern pattern); // CW rotate
 field_pattern MirrorHor(field_pattern pattern); // Horizontal mirror
-
+field_pattern CutPattern(	std::vector<mine_cell> field, cv::Size field_size, 
+							cv::Size pattern_size, cv::Point point);
 class mine_field
 {
 public:
@@ -113,6 +114,7 @@ protected:
 };
 
 std::vector<cv::Point> CheckPattern(const std::vector<mine_cell>& field, cv::Size field_size, field_pattern& pattern);
+std::vector<cv::Point> CheckPatternAround(const std::vector<mine_cell>& field, cv::Size field_size, field_pattern& pattern, cv::Point point);
 bool CheckPattern(const std::vector<mine_cell>& field, cv::Size field_size, field_pattern& pattern, cv::Point point);
 bool ComparePatterns(field_pattern& pattern1, field_pattern& pattern2);
 

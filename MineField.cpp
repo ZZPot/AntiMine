@@ -2,9 +2,10 @@
 #include <stdlib.h> // for rand_s()
 #include "MineField.h"
 #include <iostream>
+
 #pragma warning(disable: 4267 4018)
 
-#undef USE_PATTERNS
+#define USE_PATTERNS
 
 bool CheckPatternValid(const field_pattern& pattern)
 {
@@ -57,6 +58,16 @@ field_pattern MirrorHor(field_pattern pattern)
 		pattern.checks[cell_num_2] = temp_check;		
 	}
 	return pattern;
+}
+field_pattern CutPattern(	std::vector<mine_cell> field, cv::Size field_size, 
+							cv::Size pattern_size, cv::Point point)
+{
+	field_pattern res;
+	/*
+	~~~~~~~~
+	*/
+
+	return res;
 }
 mine_cell::mine_cell(cell_state init_state, int init_param)
 {
@@ -199,15 +210,15 @@ std::vector<miner_move> miner::PrepareMoves()
 			continue;
 		unsigned row = cell_num / _cols;
 		unsigned col = cell_num % _cols;
-		std::vector<unsigned> near = GetNear(row, col);
-		if(!near[CELL_UNKNOWN])
+		std::vector<unsigned> near_cells = GetNear(row, col);
+		if(!near_cells[CELL_UNKNOWN])
 			continue;
-		if(near[CELL_UNKNOWN] + near[CELL_FLAG] + near[CELL_MINE]== _field[cell_num].param) // if all unknown cells are mines
+		if(near_cells[CELL_UNKNOWN] + near_cells[CELL_FLAG] + near_cells[CELL_MINE]== _field[cell_num].param) // if all unknown cells are mines
 		{
 			MarkAllNear(row, col, CELL_FLAG);
 			continue;
 		}
-		if(near[CELL_FLAG] + near[CELL_MINE] == _field[cell_num].param) // if all unknown are safe
+		if(near_cells[CELL_FLAG] + near_cells[CELL_MINE] == _field[cell_num].param) // if all unknown are safe
 		{
 			MarkAllNear(row, col, CELL_SAFE);
 			continue;
@@ -226,7 +237,7 @@ std::vector<miner_move> miner::PrepareMoves()
 	if(!_prepared_moves.size())
 		_prepared_moves.push_back(miner_move(ACTION_RANDOM));
 #ifdef _DEBUG
-			std::cout<< "Prepeared moves: "<< _prepared_moves.size() << std::endl; 
+		//	std::cout<< "Prepeared moves: "<< _prepared_moves.size() << std::endl; 
 #endif
 	return _prepared_moves;
 }
@@ -254,7 +265,7 @@ int miner::Move(std::vector<miner_move>& moves)
 			_field[cell_num] = mine_cell(CELL_FLAG);
 #endif
 #ifdef _DEBUG
-			std::cout<< "Flag: "<< row << " " << col << std::endl; 
+		//	std::cout<< "Flag: "<< row << " " << col << std::endl; 
 #endif
 			break;
 		case ACTION_RANDOM:
@@ -262,14 +273,14 @@ int miner::Move(std::vector<miner_move>& moves)
 			row = cell_num / _cols;
 			col = cell_num % _cols;
 #ifdef _DEBUG
-			std::cout<< "Random! ";
+			std::cout<< "Random! \n";
 #endif
 		case ACTION_SAFE:
 			if(_field[cell_num].state != CELL_UNKNOWN) // actions only over unlnown cells (for a now)
 				continue;
 			_field[cell_num] = _mines->CheckCell(row, col);
 #ifdef _DEBUG
-			std::cout<< "Safe: "<< row << " " << col <<std::endl; 
+		//	std::cout<< "Safe: "<< row << " " << col <<std::endl; 
 #endif
 			if(_field[cell_num].state == CELL_MINE)
 			{
@@ -374,15 +385,17 @@ std::vector<miner_move> miner::CheckPattern(field_pattern pattern)
 	{
 		for(unsigned i = 0; i < 4; i++)
 		{
-			std::vector<cv::Point> offests = ::CheckPattern(_field, field_size, pattern);
-			for(auto offset: offests)
+			for(auto changed_cell_num: _changed)
 			{
-				for(auto move: pattern.moves)
-				{
-					move.row += offset.y;
-					move.col += offset.x;
-					res.push_back(move);
-				}
+				cv::Point changed_cell(changed_cell_num % _cols, changed_cell_num / _cols);
+				std::vector<cv::Point> offsets = ::CheckPatternAround(_field, field_size, pattern, changed_cell);
+				for(auto offset: offsets)
+					for(auto move: pattern.moves)
+					{
+						move.row += offset.y;
+						move.col += offset.x;
+						res.push_back(move);
+					}
 			}
 			pattern = Rotate90(pattern);
 		}
@@ -393,10 +406,11 @@ std::vector<miner_move> miner::CheckPattern(field_pattern pattern)
 std::vector<cv::Point> CheckPattern(const std::vector<mine_cell>& field, cv::Size field_size, field_pattern& pattern)
 {
 	std::vector<cv::Point> res;
-	if((pattern.field_part.size() / pattern.cols > field_size.height + 2) || 
+	unsigned pattern_rows = pattern.field_part.size() / pattern.cols;
+	if((pattern_rows > field_size.height + 2) || 
 		(pattern.cols > field_size.width + 2)) // maximum size is field_size with 1-cell border (both sides, so +2)
 		return res;
-	int bottom_limit = field_size.height - pattern.field_part.size()/pattern.cols + 1; // one cell over border (can be CELL_BORDER)
+	int bottom_limit = field_size.height - pattern_rows + 1; // one cell over border (can be CELL_BORDER)
 	int right_limit = field_size.width - pattern.cols + 1; // one cell over border (can be CELL_BORDER)
 	for(int i = -1; i < bottom_limit; i++)
 	for(int j = -1; j < right_limit; j++)
@@ -411,6 +425,31 @@ std::vector<cv::Point> CheckPattern(const std::vector<mine_cell>& field, cv::Siz
 		}
 	}
 
+	return res;
+}
+std::vector<cv::Point> CheckPatternAround(const std::vector<mine_cell>& field, cv::Size field_size, field_pattern& pattern, cv::Point point)
+{
+	std::vector<cv::Point> res;
+	unsigned pattern_rows = pattern.field_part.size() / pattern.cols;
+	if((pattern_rows > field_size.height + 2) || 
+		(pattern.cols > field_size.width + 2)) // maximum size is field_size with 1-cell border (both sides, so +2)
+		return res;
+	int top_limit = std::max<int>(point.y - (pattern_rows - 1), -1);
+	int left_limit = std::max<int>(point.x - (pattern.cols - 1), -1);
+	int bottom_limit = std::min<int>(field_size.height - pattern_rows + 1, point.y);
+	int right_limit = std::min<int>(field_size.width - pattern.cols + 1, point.x);
+	for(int i = top_limit; i < bottom_limit; i++)
+	for(int j = left_limit; j < right_limit; j++)
+	{
+		cv::Point temp(j, i);
+		if(CheckPattern(field, field_size, pattern, temp))
+		{
+#ifdef _DEBUG
+			std::cout << "Pattern fit: " << temp.y << " " << temp.x << std::endl;
+#endif
+			res.push_back(temp);
+		}
+	}
 	return res;
 }
 bool CheckPattern(const std::vector<mine_cell>& field, cv::Size field_size, field_pattern& pattern, cv::Point point)
