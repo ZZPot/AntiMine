@@ -25,13 +25,14 @@ struct mine_cell
 };
 enum miner_action
 {
-	ACTION_FLAG = 0,
+	ACTION_NONE = 0,
+	ACTION_FLAG,
 	ACTION_SAFE,
 	ACTION_RANDOM
 };
 struct miner_move
 {
-	miner_move(miner_action act = ACTION_RANDOM, unsigned r = 0, unsigned c = 0);
+	miner_move(miner_action act = ACTION_NONE, unsigned r = 0, unsigned c = 0);
 	miner_action action;
 	int row;
 	int col;
@@ -43,12 +44,12 @@ struct miner_move
 
 struct field_pattern
 {
-	field_pattern();
 	std::vector<std::vector<mine_cell>> field_part;
 	std::vector<int> checks; // negative == not, -1 * (FP_STATE) = not specified state
 	unsigned cols;
 	std::vector<miner_move> moves;
 };
+bool CheckPatternValid(const field_pattern& pattern);
 field_pattern Rotate90(field_pattern pattern); // CW rotate
 field_pattern MirrorHor(field_pattern pattern); // Horizontal mirror
 
@@ -114,3 +115,5 @@ protected:
 std::vector<cv::Point> CheckPattern(const std::vector<mine_cell>& field, cv::Size field_size, field_pattern& pattern);
 bool CheckPattern(const std::vector<mine_cell>& field, cv::Size field_size, field_pattern& pattern, cv::Point point);
 bool ComparePatterns(field_pattern& pattern1, field_pattern& pattern2);
+
+extern std::vector<field_pattern> patterns;

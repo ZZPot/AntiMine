@@ -21,8 +21,9 @@ int main()
 	my_miner.Init(&cvm);
 	//my_miner.Display();	
 	//pars.Display();
-	waitKey(0);
+	
 	cvm.Reset(); // just activate game window, not reset
+	//waitKey(0);
 	while(my_miner.PrepareMoves().size())
 	{
 		int res = my_miner.Move();

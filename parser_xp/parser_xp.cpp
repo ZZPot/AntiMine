@@ -125,6 +125,7 @@ mine_cell parser_xp::ParseCellROI(cv::Mat img_roi, unsigned row, unsigned col)
 	}
 	else
 	{
+		//imshow("ParseROI", img_roi);
 		if(!(IN_RANGE(row, 0, _params.rows) && IN_RANGE(col, 0, _params.cols)))
 			return mine_cell(CELL_ERROR);
 		cv::Mat field_roi = img_roi(field_rect);
