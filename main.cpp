@@ -29,13 +29,12 @@ int main()
 		int res = my_miner.Move();
 		//pars.Display();
 		//my_miner.Display();
-		//cvm.RefreshState();
 		//waitKey(20);
 		if(res != -1)
 		{
 			cvm.Reset();
 			my_miner.Init(&cvm);
-		}		
+		}	
 	}
 #ifdef _DEBUG
 			std::cout<< "Complete" << std::endl; 

@@ -43,10 +43,14 @@ bool parser_xp::ParseROI(cv::Mat img_roi, field_params* params)
 		field_rect = GetFieldRect(img_roi);
 		if(field_rect.width == 0)
 			return false;
-		cv::Mat field_roi = img_roi(field_rect);
-		GetParams(field_roi);
+		_params.rows = field_rect.height / CELL_SIZE;
+		_params.cols = field_rect.width / CELL_SIZE;
+		_params.size = CELL_SIZE; // it's always 16
 		if(_params.cols * _params.rows == 0)
+		{
+			Reset();
 			return false;
+		}
 		cv::Point offset = _roi.tl(); // from the original image
 		offset.x += field_rect.x;
 		offset.y += field_rect.y;
@@ -60,36 +64,29 @@ bool parser_xp::ParseROI(cv::Mat img_roi, field_params* params)
 			cell_p.x = j * _params.size + offset.x + _params.size/2; // center
 			cell_p.y = i * _params.size + offset.y + _params.size/2; // center
 			_params.cells[cell_num] = cell_p;
-			cv::Rect cell_rect(j * _params.size + 1, i * _params.size + 1, _params.size - 1, _params.size - 1);
-			_params.mines[cell_num] = GetCell(field_roi(cell_rect));
-			if(_params.mines[cell_num].state == CELL_ERROR)
-				return false;
 		}
 		_params.reset.x = field_rect.width/2 + offset.x;
 		_params.reset.y = offset.y - 25;
+		prev_field = cv::Mat::zeros(field_rect.height, field_rect.width, CV_8UC3);
+		DrawCellPoints();
 #ifndef PARSE_FULL
 	}
-	else
-	{
-		cv::Mat field_roi = img_roi(field_rect);
-		// check only unknown
-		for(unsigned i = 0; i < _params.mines.size(); i++)
-		{
-			if( _params.mines[i].state != CELL_UNKNOWN) // we already know it
-				continue;
-			cv::Rect cell_rect((i % _params.cols) * _params.size + 1, (i / _params.cols) * _params.size + 1, _params.size - 1, _params.size - 1);
-			_params.mines[i] = GetCell(field_roi(cell_rect));
-			if(_params.mines[i].state == CELL_ERROR)
-			{
-#ifdef _DEBUG
-			std::cout<< "CELL_ERROR: "<< i / _params.cols << " " << i % _params.cols <<std::endl; 
 #endif
-				Reset();
-				return false;
-			}
+	cv::Mat field_roi = img_roi(field_rect);
+	std::vector<unsigned> changed_cells = GetChanged(field_roi);
+	for(auto changed_cell: changed_cells)
+	{
+		cv::Rect cell_rect((changed_cell % _params.cols) * _params.size + 1, (changed_cell / _params.cols) * _params.size + 1, _params.size - 1, _params.size - 1);
+		_params.mines[changed_cell] = GetCell(field_roi(cell_rect));
+		if(_params.mines[changed_cell].state == CELL_ERROR)
+		{
+#ifdef _DEBUG
+		std::cout<< "CELL_ERROR: "<< changed_cell / _params.cols << " " << changed_cell % _params.cols <<std::endl; 
+#endif
+			Reset();
+			return false;
 		}
 	}
-#endif
 	*params = _params;
 	return true;
 }
@@ -102,57 +99,77 @@ mine_cell parser_xp::ParseCellROI(cv::Mat img_roi, unsigned row, unsigned col)
 		field_rect = GetFieldRect(img_roi);
 		if(field_rect.width == 0)
 			return mine_cell(CELL_ERROR);
-		cv::Mat field_roi = img_roi(field_rect);
-		GetParams(field_roi);
+		_params.rows = field_rect.height / CELL_SIZE;
+		_params.cols = field_rect.width / CELL_SIZE;
+		_params.size = CELL_SIZE; // it's always 16
 		if(_params.cols * _params.rows == 0)
-			return mine_cell(CELL_ERROR);
-		if(!(IN_RANGE(row, 0, _params.rows - 1) && IN_RANGE(col, 0, _params.cols - 1)))
-			return mine_cell(CELL_ERROR);
-		cv::Point offset = _roi.tl(); // from the original image
-		offset.x += field_rect.x;
-		offset.y += field_rect.y;
-		_params.cells.resize(_params.rows * _params.cols);
-		_params.mines.resize(_params.rows * _params.cols);
-		cv::Point cell_p;
-		unsigned cell_num = row * _params.cols + col;
-		cell_p.x = col * _params.size + offset.x + _params.size/2; // center
-		cell_p.y = row * _params.size + offset.y + _params.size/2; // center
-		_params.cells[cell_num] = cell_p;
-		cv::Rect cell_rect(col * _params.size + 1, row * _params.size + 1, _params.size - 1, _params.size - 1);
-		_params.mines[cell_num] = GetCell(field_roi(cell_rect));
-		return _params.mines[cell_num];
-#ifndef PARSE_FULL
-	}
-	else
-	{
-		//imshow("ParseROI", img_roi);
-		if(!(IN_RANGE(row, 0, _params.rows) && IN_RANGE(col, 0, _params.cols)))
-			return mine_cell(CELL_ERROR);
-		cv::Mat field_roi = img_roi(field_rect);
-		unsigned cell_num = row * _params.cols + col;
-		if( _params.mines[cell_num].state != CELL_UNKNOWN) // we already know it
-			return _params.mines[cell_num];
-		cv::Rect cell_rect(col * _params.size + 1, row * _params.size + 1, _params.size - 1, _params.size - 1);
-		_params.mines[cell_num] = GetCell(field_roi(cell_rect));
-		if(_params.mines[cell_num].state == CELL_ERROR)
 		{
-#ifdef _DEBUG
-			std::cout<< "CELL_ERROR: "<< row << " " << col <<std::endl; 
-#endif
-			cv::imshow("err", field_roi);
-			cv::waitKey(0);
 			Reset();
 			return mine_cell(CELL_ERROR);
 		}
-		return _params.mines[cell_num];		
+		if(!(IN_RANGE(row, 0, _params.rows - 1) && IN_RANGE(col, 0, _params.cols - 1)))
+			return mine_cell(CELL_ERROR);
+		_params.mines.resize(_params.rows * _params.cols);
+#ifndef PARSE_FULL
 	}
 #endif
+	if(!(IN_RANGE(row, 0, _params.rows) && IN_RANGE(col, 0, _params.cols)))
+		return mine_cell(CELL_ERROR);
+	unsigned cell_num = row * _params.cols + col;
+	if( _params.mines[cell_num].state != CELL_UNKNOWN) // we already know it
+		return _params.mines[cell_num];
+	cv::Rect cell_rect(col * _params.size + 1, row * _params.size + 1, _params.size - 1, _params.size - 1);
+	cv::Mat field_roi = img_roi(field_rect);
+	_params.mines[cell_num] = GetCell(field_roi(cell_rect));
+	if(_params.mines[cell_num].state == CELL_ERROR)
+	{
+#ifdef _DEBUG
+		std::cout<< "CELL_ERROR: "<< row << " " << col <<std::endl; 
+#endif
+		cv::imshow("err", field_roi);
+		cv::waitKey(0);
+		Reset();
+		return mine_cell(CELL_ERROR);
+	}
+	return _params.mines[cell_num];		
 }
-void parser_xp::GetParams(cv::Mat field_roi)
+void parser_xp::DrawCellPoints()
 {
-	_params.rows = field_rect.height / CELL_SIZE;
-	_params.cols = field_rect.width / CELL_SIZE;
-	_params.size = CELL_SIZE; // it's always 16
+	if(!_params.cols)
+		return;
+	cell_points = cv::Mat::zeros(field_rect.height, field_rect.width, CV_8UC1);
+	cv::Point offset = _roi.tl();
+	offset.x += field_rect.x;
+	offset.y += field_rect.y;
+	for(auto cell: _params.cells)
+		cell_points.at<unsigned char>(cell.y - offset.y, cell.x - offset.x) = 255;
+}
+std::vector<unsigned> parser_xp::GetChanged(cv::Mat new_field_img)
+{
+	std::vector<unsigned> res;
+	if(_params.cols == 0)
+		return res;
+	cv::Mat changed;
+	cv::absdiff(prev_field, new_field_img, changed);
+	cv::cvtColor(changed, changed, CV_BGR2GRAY);
+	changed *= 255; 
+	std::vector<Obj2d> objects = FindObjects(changed, std::vector<type_condition>(), std::vector<int>(), cv::RETR_EXTERNAL);
+	for(auto obj: objects)
+	{
+		DrawContours(obj.contours, {cv::Scalar::all(255)}, changed);
+	}
+	//cv::imshow("Changed", changed);
+	//cv::waitKey(0);
+	bitwise_and(changed, cell_points, changed);
+	std::vector<cv::Point> center_points;
+	cv::findNonZero(changed, center_points);
+	res.reserve(center_points.size());
+	for(auto point: center_points)
+	{
+		res.push_back((point.y /_params.size)  * _params.cols + (point.x /_params.size));
+	}
+	prev_field = new_field_img;
+	return res;
 }
 void parser_xp::Reset()
 {

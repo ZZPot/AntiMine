@@ -5,7 +5,7 @@
 
 #pragma warning(disable: 4267 4018)
 
-#define USE_PATTERNS
+//#define USE_PATTERNS
 
 bool CheckPatternValid(const field_pattern& pattern)
 {
@@ -91,6 +91,10 @@ mine_field_cpu::~mine_field_cpu()
 	if(_mines != nullptr)
 		delete [] _mines;
 }
+std::vector<mine_cell> mine_field::GetFieldView()
+{
+	return std::vector<mine_cell>();
+}
 unsigned mine_field_cpu::GetRows()
 {
 	return _rows;
@@ -172,7 +176,7 @@ unsigned mine_field_cpu::RandomFree()
 /*
 	Miner class
 */
-void miner::Init(mine_field* mines, std::vector<mine_cell> field)
+void miner::Init(mine_field* mines)
 {
 	if(mines == nullptr)
 		return;
@@ -181,15 +185,22 @@ void miner::Init(mine_field* mines, std::vector<mine_cell> field)
 	_unknown.clear();
 	_moves.clear();
 	_changed.clear();
+	_vanguard.clear();
 	_prepared_moves.clear();
 	_rows = _mines->GetRows();
 	_cols = _mines->GetCols();
-	if(field.size() == _cols * _rows)
+	std::vector<mine_cell> field_view = mines->GetFieldView();
+	if(field_view.size() == _cols * _rows)
 	{
-		_field = field;
+		_field = field_view;
 		for(unsigned i = 0; i < _rows * _cols; i++)
+		{
 			if(_field[i].state == CELL_UNKNOWN)
-			_unknown.push_back(i);
+				_unknown.push_back(i);
+			else
+				_changed.insert(i);
+
+		}
 	}
 	else
 	{
@@ -198,6 +209,7 @@ void miner::Init(mine_field* mines, std::vector<mine_cell> field)
 		for(unsigned i = 0; i < _rows * _cols; i++)
 			_unknown[i] = i; 
 	}
+	_vanguard = _changed;
 }
 std::vector<miner_move> miner::PrepareMoves()
 {
@@ -213,14 +225,16 @@ std::vector<miner_move> miner::PrepareMoves()
 		std::vector<unsigned> near_cells = GetNear(row, col);
 		if(!near_cells[CELL_UNKNOWN])
 			continue;
-		if(near_cells[CELL_UNKNOWN] + near_cells[CELL_FLAG] + near_cells[CELL_MINE]== _field[cell_num].param) // if all unknown cells are mines
+		if(near_cells[CELL_UNKNOWN] + near_cells[CELL_FLAG] + near_cells[CELL_MINE] == _field[cell_num].param) // if all unknown cells are mines
 		{
 			MarkAllNear(row, col, CELL_FLAG);
+			_vanguard.erase(cell_num);
 			continue;
 		}
 		if(near_cells[CELL_FLAG] + near_cells[CELL_MINE] == _field[cell_num].param) // if all unknown are safe
 		{
 			MarkAllNear(row, col, CELL_SAFE);
+			_vanguard.erase(cell_num);
 			continue;
 		}
 	}
@@ -265,7 +279,7 @@ int miner::Move(std::vector<miner_move>& moves)
 			_field[cell_num] = mine_cell(CELL_FLAG);
 #endif
 #ifdef _DEBUG
-		//	std::cout<< "Flag: "<< row << " " << col << std::endl; 
+			std::cout<< "Flag: "<< row << " " << col << std::endl; 
 #endif
 			break;
 		case ACTION_RANDOM:
@@ -273,14 +287,14 @@ int miner::Move(std::vector<miner_move>& moves)
 			row = cell_num / _cols;
 			col = cell_num % _cols;
 #ifdef _DEBUG
-			std::cout<< "Random! \n";
+			std::cout<< "Random! ";
 #endif
 		case ACTION_SAFE:
 			if(_field[cell_num].state != CELL_UNKNOWN) // actions only over unlnown cells (for a now)
 				continue;
 			_field[cell_num] = _mines->CheckCell(row, col);
 #ifdef _DEBUG
-		//	std::cout<< "Safe: "<< row << " " << col <<std::endl; 
+			std::cout<< "Safe: "<< row << " " << col <<std::endl; 
 #endif
 			if(_field[cell_num].state == CELL_MINE)
 			{
@@ -302,8 +316,28 @@ int miner::Move(std::vector<miner_move>& moves)
 		if(unk != _unknown.end())
 			_unknown.erase(unk);
 		_changed.insert(cell_num);
+		_vanguard.insert(cell_num);
+#ifdef _DEBUG
+		std::cout<< "Unknown: "<< _unknown.size() << std::endl;
+#endif 
 	}
 	MarkAllNearChanged();
+	/*std::vector<mine_cell> field_view = _mines->GetFieldView();
+	if(field_view.size() == _cols * _rows)	
+	{
+		_field = field_view;
+		for(unsigned i = 0; i < _rows * _cols; i++)
+		{
+			if(_field[i].state == CELL_UNKNOWN)
+				_unknown.push_back(i);
+			else
+			{
+				if(!((_field[i].state == CELL_SAFE) && (_field[i].param == 0)))
+					_changed.insert(i);
+			}
+		}
+		_vanguard = _changed;
+	}*/
 	return res;
 }
 int miner::Move()
@@ -385,10 +419,10 @@ std::vector<miner_move> miner::CheckPattern(field_pattern pattern)
 	{
 		for(unsigned i = 0; i < 4; i++)
 		{
-			for(auto changed_cell_num: _changed)
+			for(auto vanguard_cell_num: _vanguard)
 			{
-				cv::Point changed_cell(changed_cell_num % _cols, changed_cell_num / _cols);
-				std::vector<cv::Point> offsets = ::CheckPatternAround(_field, field_size, pattern, changed_cell);
+				cv::Point vanguard_cell(vanguard_cell_num % _cols, vanguard_cell_num / _cols);
+				std::vector<cv::Point> offsets = ::CheckPatternAround(_field, field_size, pattern, vanguard_cell);
 				for(auto offset: offsets)
 					for(auto move: pattern.moves)
 					{
@@ -412,8 +446,8 @@ std::vector<cv::Point> CheckPattern(const std::vector<mine_cell>& field, cv::Siz
 		return res;
 	int bottom_limit = field_size.height - pattern_rows + 1; // one cell over border (can be CELL_BORDER)
 	int right_limit = field_size.width - pattern.cols + 1; // one cell over border (can be CELL_BORDER)
-	for(int i = -1; i < bottom_limit; i++)
-	for(int j = -1; j < right_limit; j++)
+	for(int i = -1; i <= bottom_limit; i++)
+	for(int j = -1; j <= right_limit; j++)
 	{
 		cv::Point temp(j, i);
 		if(CheckPattern(field, field_size, pattern, temp))
@@ -438,8 +472,8 @@ std::vector<cv::Point> CheckPatternAround(const std::vector<mine_cell>& field, c
 	int left_limit = std::max<int>(point.x - (pattern.cols - 1), -1);
 	int bottom_limit = std::min<int>(field_size.height - pattern_rows + 1, point.y);
 	int right_limit = std::min<int>(field_size.width - pattern.cols + 1, point.x);
-	for(int i = top_limit; i < bottom_limit; i++)
-	for(int j = left_limit; j < right_limit; j++)
+	for(int i = top_limit; i <= bottom_limit; i++)
+	for(int j = left_limit; j <= right_limit; j++)
 	{
 		cv::Point temp(j, i);
 		if(CheckPattern(field, field_size, pattern, temp))
@@ -466,7 +500,7 @@ bool CheckPattern(const std::vector<mine_cell>& field, cv::Size field_size, fiel
 		int col_num = j + point.x;
 		int field_cell_num = row_num * field_size.width + col_num;
 		unsigned pattern_cell_num = i * pattern_size.width + j;
-		if(IN_RANGE(row_num, 0, field_size.height) && IN_RANGE(col_num, 0, field_size.width))
+		if(IN_RANGE(row_num, 0, field_size.height-1) && IN_RANGE(col_num, 0, field_size.width-1))
 		{
 			minefield_pattern.field_part[pattern_cell_num].push_back(field[field_cell_num]);
 		}
@@ -534,7 +568,7 @@ bool ComparePatterns(field_pattern& pattern1, field_pattern& pattern2)
 		if(!temp_res)
 			return false;
 	}
-	return false;
+	return true;
 }
 
 /*
@@ -543,7 +577,7 @@ field part
 	S/B   S/B   S/B
 	U/S/B 1     U
 	U/S/B 1     U
-	U/S	  U/S   U/S // one of them shouldn't be safe
+	U/S/B U/S   U/S // one of them shouldn't be safe
 checks
 	FP_STATE	FP_STATE			FP_STATE
 	FP_STATE	FP_STATE | FP_PARAM	FP_STATE
@@ -560,7 +594,7 @@ field_pattern pattern_1_1 = {
 {mine_cell(CELL_SAFE), mine_cell(CELL_BORDER)}, {mine_cell(CELL_SAFE), mine_cell(CELL_BORDER)}, {mine_cell(CELL_SAFE), mine_cell(CELL_BORDER)},
 {mine_cell(CELL_SAFE), mine_cell(CELL_BORDER), mine_cell()}, {mine_cell(CELL_SAFE, 1)}, {mine_cell()},
 {mine_cell(CELL_SAFE), mine_cell(CELL_BORDER), mine_cell()}, {mine_cell(CELL_SAFE, 1)}, {mine_cell()},
-{mine_cell(CELL_SAFE), mine_cell()}, {mine_cell(CELL_SAFE), mine_cell()}, {mine_cell(CELL_SAFE), mine_cell()},
+{mine_cell(CELL_SAFE), mine_cell(CELL_BORDER), mine_cell()}, {mine_cell(CELL_SAFE), mine_cell()}, {mine_cell(CELL_SAFE), mine_cell()},
 	},
 	{	//checks	
 		FP_STATE,	FP_STATE,			FP_STATE,	

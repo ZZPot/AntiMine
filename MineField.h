@@ -5,6 +5,7 @@
 
 #define IN_RANGE(val, _min, _max) ((_min) <= (val)) &&  ((val) <= (_max))
 #define CHECK_RANGE(row_num, col_num) (IN_RANGE((row_num), 0, _rows-1) && IN_RANGE((col_num), 0, _cols-1))
+
 //#define MARK_FLAG
 
 enum cell_state
@@ -62,6 +63,7 @@ public:
 	virtual unsigned GetRows() = 0;
 	virtual unsigned GetCols() = 0;
 	virtual void Reset() = 0;
+	virtual std::vector<mine_cell> GetFieldView();
 protected:
 };
 
@@ -92,7 +94,7 @@ class miner
 {
 public:
 	virtual ~miner(){}
-	virtual void Init(mine_field* mines, std::vector<mine_cell> field = std::vector<mine_cell>());
+	virtual void Init(mine_field* mines);
 	std::vector<miner_move> PrepareMoves();
 	virtual int Move(std::vector<miner_move>& moves);
 	int Move();
@@ -110,6 +112,7 @@ protected:
 	std::vector<unsigned> _unknown;
 	std::vector<miner_move> _moves;
 	std::set<unsigned>	_changed;
+	std::set<unsigned>	_vanguard;
 	std::vector<miner_move> _prepared_moves;
 };
 

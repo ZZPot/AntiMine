@@ -10,7 +10,7 @@
 #include "opencv2/opencv_modules.hpp"
 
 //#define PARSE_FULL // parse all ROI all the time
-#define PARSE_SINGLE // parse only one cell
+//#define PARSE_SINGLE // parse only one cell
 
 struct field_params
 {
@@ -39,6 +39,8 @@ public:
 	unsigned GetCols();
 	mine_cell CheckCell(unsigned row, unsigned col, bool flag);
 	void Reset();
+	std::vector<mine_cell> GetFieldView();
+	
 	void SetParser(mine_parser* parser);
 	void SetFrameSource(cv::Ptr<cv::videostab::IFrameSource> frames);
 	bool RefreshState();

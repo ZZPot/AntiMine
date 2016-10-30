@@ -20,9 +20,13 @@ void cv_minefield::Reset()
 	if(!_last_frame)
 		return;
 	ClickAtPoint(_params.reset);
-	Sleep(200); // full field repaint takes time (if there is no windows cv::waitKey() won't work)
+	Sleep(100); // full field repaint takes time (if there is no windows cv::waitKey() won't work)
 	_parser->Reset();
 	RefreshState();
+}
+std::vector<mine_cell> cv_minefield::GetFieldView()
+{
+	return _params.mines;
 }
 mine_cell cv_minefield::CheckCell(unsigned row, unsigned col, bool flag)
 {
@@ -55,7 +59,7 @@ void cv_minefield::ClickMine(unsigned row, unsigned col, bool flag)
 	if(!_last_frame)
 		return;
 	ClickAtPoint(_params.cells[row * _params.cols + col], flag);
-	Sleep(20); // cells should be repainted
+	Sleep(8); // cells should be repainted
 }
 bool cv_minefield::RefreshState()
 {

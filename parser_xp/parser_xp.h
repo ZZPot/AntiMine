@@ -23,10 +23,13 @@ protected:
 	cv::Rect GetFieldRect(cv::Mat img_roi);
 	bool ParseROI(cv::Mat img_roi, field_params* params);
 	mine_cell ParseCellROI(cv::Mat img_roi, unsigned row, unsigned col);
-	void GetParams(cv::Mat field_roi);
+	void DrawCellPoints();
+	std::vector<unsigned> GetChanged(cv::Mat new_field_img); 
 protected:
 	field_params _params;
 	cv::Rect field_rect;
+	cv::Mat cell_points;
+	cv::Mat prev_field;
 };
 
 mine_cell GetCell(cv::Mat img);
