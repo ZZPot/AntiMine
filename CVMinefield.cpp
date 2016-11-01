@@ -17,11 +17,13 @@ unsigned cv_minefield::GetCols()
 }
 void cv_minefield::Reset()
 {
-	if(!_last_frame)
-		return;
-	ClickAtPoint(_params.reset);
-	Sleep(100); // full field repaint takes time (if there is no windows cv::waitKey() won't work)
+	Sleep(100);
+	if(_params.reset.x >= 0)
+		ClickAtPoint(_params.reset);
+	else
+		PressKey(-_params.reset.x, _params.reset.y);
 	_parser->Reset();
+	Sleep(100); // full field repaint takes time (if there is no windows cv::waitKey() won't work)
 	RefreshState();
 }
 std::vector<mine_cell> cv_minefield::GetFieldView()
@@ -82,7 +84,18 @@ void ClickAtPoint(cv::Point p, bool rmb)
     mouse_input.mi.dwFlags = rmb ? MOUSEEVENTF_RIGHTDOWN : MOUSEEVENTF_LEFTDOWN;
     mouse_input.mi.time = 0;
 	SendInput(1, &mouse_input, sizeof(INPUT));
-	//Sleep(20); // move that time into after-click delay
 	mouse_input.mi.dwFlags = rmb ? MOUSEEVENTF_RIGHTUP : MOUSEEVENTF_LEFTUP;
 	SendInput(1, &mouse_input, sizeof(INPUT));
+}
+void PressKey(int key, int time)
+{
+	INPUT keyboard_input;
+	keyboard_input.type = INPUT_KEYBOARD;
+	keyboard_input.ki.wVk = key;
+    keyboard_input.ki.time = 0;
+	keyboard_input.ki.dwFlags = 0;
+	SendInput(1, &keyboard_input, sizeof(INPUT));
+	Sleep(time);
+	keyboard_input.ki.dwFlags = KEYEVENTF_KEYUP;
+	SendInput(1, &keyboard_input, sizeof(INPUT));
 }

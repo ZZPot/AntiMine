@@ -311,7 +311,11 @@ int miner::Move(std::vector<miner_move>& moves)
 		if(_field[cell_num].state == CELL_UNKNOWN) // can't check, skip
 			continue;
 		if(_field[cell_num].state == CELL_ERROR) // some shit happens
+		{
+			_mines->Reset();
+			Init(_mines);
 			return res;
+		}
 		auto unk = find(_unknown.begin(), _unknown.end(), cell_num); // some times it may check same cell twice (should be fixed)
 		if(unk != _unknown.end())
 			_unknown.erase(unk);

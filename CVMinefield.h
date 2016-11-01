@@ -30,7 +30,6 @@ public:
 	virtual mine_cell ParseCell(cv::Mat img, unsigned row, unsigned col) = 0;
 	virtual void Reset() = 0; // if it stores some info
 };
-
 class cv_minefield: public mine_field
 {
 public:
@@ -54,3 +53,4 @@ protected:
 };
 
 void ClickAtPoint(cv::Point p, bool rmb = false);
+void PressKey(int key, int time = 200);
