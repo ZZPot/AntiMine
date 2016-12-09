@@ -17,10 +17,9 @@ extern std::vector<std::pair<cv::Scalar, cv::Scalar>> field_colors_hsv_7;
 class parser_7: public parser_win
 {
 public:	
+	bool Parse(cv::Mat img_roi, field_params* params);
+	mine_cell ParseCell(cv::Mat img_roi, unsigned row, unsigned col);
 protected:
-	bool ParseROI(cv::Mat img_roi, field_params* params);
-	mine_cell ParseCellROI(cv::Mat img_roi, unsigned row, unsigned col);
-
 	virtual cv::Rect GetFieldRect(cv::Mat img_roi);
 	virtual cv::Rect GetCellRect(unsigned row, unsigned col);
 	virtual mine_cell GetCell(cv::Mat img);

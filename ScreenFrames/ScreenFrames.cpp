@@ -1,9 +1,9 @@
-#include "DTFrames.h"
+#include "ScreenFrames.h"
 #include <opencv2/imgproc.hpp>
 
-void dt_frames::reset()
+void screen_frames::reset()
 {}
-cv::Mat dt_frames::nextFrame()
+cv::Mat screen_frames::nextFrame()
 {
 	HWND hwndDesktop = GetDesktopWindow();
 	cv::Mat res = hwnd2mat(hwndDesktop);

@@ -1,5 +1,6 @@
 #include "parser_win.h"
-#include "../common/FeatureDetector.h"
+#include "../FeatureDetector/FeatureDetector.h"
+#include "../common/common.hpp"
 #include <iostream>
 #pragma warning(disable: 4800)
 parser_win::parser_win()
@@ -7,7 +8,7 @@ parser_win::parser_win()
 	_params.cols = 0;
 	_params.rows = 0;
 }
-bool parser_win::ParseROI(cv::Mat img_roi, field_params* params)
+bool parser_win::Parse(cv::Mat img_roi, field_params* params)
 {
 #ifndef PARSE_FULL
 	if(!(_params.rows * _params.cols))
@@ -22,9 +23,6 @@ bool parser_win::ParseROI(cv::Mat img_roi, field_params* params)
 			Reset();
 			return false;
 		}
-		cv::Point offset = _roi.tl(); // from the original image
-		offset.x += field_rect.x;
-		offset.y += field_rect.y;
 		_params.cells.resize(_params.rows * _params.cols);
 		_params.mines.resize(_params.rows * _params.cols);
 		for(unsigned i = 0; i < _params.rows; i++)
@@ -32,8 +30,7 @@ bool parser_win::ParseROI(cv::Mat img_roi, field_params* params)
 		{
 			cv::Point cell_p;
 			unsigned cell_num = i * _params.cols + j;
-			cell_p.x = j * _params.size + offset.x + _params.size/2; // center
-			cell_p.y = i * _params.size + offset.y + _params.size/2; // center
+			cell_p = (cv::Point(j, i) * (unsigned)_params.size) + field_rect.tl() + _params.size/2;
 			_params.cells[cell_num] = cell_p;
 		}
 		prev_field = cv::Mat::zeros(field_rect.height, field_rect.width, CV_8UC3);
@@ -59,7 +56,7 @@ bool parser_win::ParseROI(cv::Mat img_roi, field_params* params)
 	*params = _params;
 	return true;
 }
-mine_cell parser_win::ParseCellROI(cv::Mat img_roi, unsigned row, unsigned col)
+mine_cell parser_win::ParseCell(cv::Mat img_roi, unsigned row, unsigned col)
 {
 #ifndef PARSE_FULL
 	if(!(_params.rows * _params.cols))
@@ -105,11 +102,8 @@ void parser_win::DrawCellPoints()
 	if(!_params.cols)
 		return;
 	cell_points = cv::Mat::zeros(field_rect.height / _params.size * _params.size, field_rect.width / _params.size * _params.size, CV_8UC1);
-	cv::Point offset = _roi.tl();
-	offset.x += field_rect.x;
-	offset.y += field_rect.y;
 	for(auto cell: _params.cells)
-		cell_points.at<unsigned char>(cell.y - offset.y, cell.x - offset.x) = 255;
+		cell_points.at<unsigned char>(cell.y - field_rect.y, cell.x - field_rect.x) = 255;
 }
 std::vector<unsigned> parser_win::GetChanged(cv::Mat new_field_img)
 {
@@ -125,8 +119,6 @@ std::vector<unsigned> parser_win::GetChanged(cv::Mat new_field_img)
 	{
 		DrawContours(obj.contours, {cv::Scalar::all(255)}, changed);
 	}
-	//cv::imshow("Changed", changed);
-	//cv::waitKey(0);
 	bitwise_and(changed, cell_points, changed);
 	std::vector<cv::Point> center_points;
 	cv::findNonZero(changed, center_points);

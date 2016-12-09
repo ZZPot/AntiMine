@@ -1,5 +1,5 @@
 #include "parser_xp.h"
-#include "../../common/FeatureDetector.h"
+#include "../../FeatureDetector/FeatureDetector.h"
 #include <iostream>
 #pragma warning(disable: 4800)
 
@@ -36,6 +36,8 @@ cv::Rect parser_xp::GetCellRect(unsigned row, unsigned col)
 }
 mine_cell parser_xp::GetCell(cv::Mat img)
 {
+	//cv::imshow("Cell", img);
+	//cv::waitKey(200);
 	for(unsigned i = 0; i < field_colors_xp.size(); i++)
 	{
 		cv::Mat img_ranged;
@@ -63,8 +65,8 @@ void parser_xp::InitParams()
 	_params.size = CELL_SIZE_XP;
 	_params.cols = field_rect.width / CELL_SIZE_XP;
 	_params.rows = field_rect.height / CELL_SIZE_XP;
-	_params.reset.x = field_rect.x + field_rect.width/2 + _roi.x;
-	_params.reset.y = field_rect.y - 25 + _roi.y;
+	_params.reset.x = field_rect.x + field_rect.width/2;
+	_params.reset.y = field_rect.y - 25;
 }
 std::vector<cv::Scalar> field_colors_xp = {	cv::Scalar(192, 192, 192),
 											cv::Scalar(255, 0, 0),	//1

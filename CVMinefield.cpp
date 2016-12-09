@@ -1,6 +1,7 @@
 #include "CVMinefield.h"
 #include <windows.h>
 #include <iostream>
+#include "common/common.hpp"
 
 cv_minefield::cv_minefield()
 {
@@ -19,7 +20,7 @@ void cv_minefield::Reset()
 {
 	Sleep(100);
 	if(_params.reset.x >= 0)
-		ClickAtPoint(_params.reset);
+		ClickAtPoint(_params.reset+_frames->GetOffset());
 	else
 		PressKey(-_params.reset.x, _params.reset.y);
 	_parser->Reset();
@@ -52,7 +53,7 @@ void cv_minefield::SetParser(mine_parser* parser)
 {
 	_parser = parser;
 }
-void cv_minefield::SetFrameSource(cv::Ptr<cv::videostab::IFrameSource> frames)
+void cv_minefield::SetFrameSource(cv::Ptr<part_frames> frames)
 {
 	_frames = frames;
 }
@@ -60,8 +61,8 @@ void cv_minefield::ClickMine(unsigned row, unsigned col, bool flag)
 {
 	if(!_last_frame)
 		return;
-	ClickAtPoint(_params.cells[row * _params.cols + col], flag);
-	Sleep(8); // cells should be repainted
+	ClickAtPoint(_params.cells[row * _params.cols + col] + _frames->GetOffset(), flag);
+	Sleep(0); // cells should be repainted
 }
 bool cv_minefield::RefreshState()
 {

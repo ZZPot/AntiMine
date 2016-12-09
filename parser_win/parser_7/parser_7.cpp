@@ -1,10 +1,11 @@
 #include "parser_7.h"
-#include "../../common/FeatureDetector.h"
+#include "../../FeatureDetector/FeatureDetector.h"
+#include "../../common/common.hpp"
 #include <iostream>
 #include <windows.h>
 
 #pragma warning(disable: 4800)
-bool parser_7::ParseROI(cv::Mat img_roi, field_params* params)
+bool parser_7::Parse(cv::Mat img_roi, field_params* params)
 {
 #ifndef PARSE_FULL
 	if(!(_params.rows * _params.cols))
@@ -19,18 +20,14 @@ bool parser_7::ParseROI(cv::Mat img_roi, field_params* params)
 			Reset();
 			return false;
 		}
-		cv::Point offset = _roi.tl(); // from the original image
-		offset.x += field_rect.x;
-		offset.y += field_rect.y;
 		_params.cells.resize(_params.rows * _params.cols);
 		_params.mines.resize(_params.rows * _params.cols);
 		for(unsigned i = 0; i < _params.rows; i++)
 		for(unsigned j = 0; j < _params.cols; j++)
 		{
 			cv::Point cell_p;
-			unsigned cell_num = i * _params.cols + j;
-			cell_p.x = j * _params.size + offset.x + _params.size/2; // center
-			cell_p.y = i * _params.size + offset.y + _params.size/2; // center
+			unsigned cell_num = i * (_params.cols) + j;
+			cell_p = cv::Point(j, i) * (unsigned)_params.size + field_rect.tl() + _params.size/2;
 			_params.cells[cell_num] = cell_p;
 		}
 		prev_field = cv::Mat::zeros(field_rect.height/2 * 2, field_rect.width/2 * 2, CV_8UC3);
@@ -57,7 +54,7 @@ bool parser_7::ParseROI(cv::Mat img_roi, field_params* params)
 	*params = _params;
 	return true;
 }
-mine_cell parser_7::ParseCellROI(cv::Mat img_roi, unsigned row, unsigned col)
+mine_cell parser_7::ParseCell(cv::Mat img_roi, unsigned row, unsigned col)
 {
 #ifndef PARSE_FULL
 	if(!(_params.rows * _params.cols))

@@ -294,7 +294,8 @@ int miner::Move(std::vector<miner_move>& moves)
 				continue;
 			_field[cell_num] = _mines->CheckCell(row, col);
 #ifdef _DEBUG
-			std::cout<< "Safe: "<< row << " " << col <<std::endl; 
+			if(_field[cell_num].state == CELL_SAFE)
+				std::cout<< "Safe: "<< row << " " << col <<std::endl; 
 #endif
 			if(_field[cell_num].state == CELL_MINE)
 			{
@@ -326,22 +327,6 @@ int miner::Move(std::vector<miner_move>& moves)
 #endif 
 	}
 	MarkAllNearChanged();
-	/*std::vector<mine_cell> field_view = _mines->GetFieldView();
-	if(field_view.size() == _cols * _rows)	
-	{
-		_field = field_view;
-		for(unsigned i = 0; i < _rows * _cols; i++)
-		{
-			if(_field[i].state == CELL_UNKNOWN)
-				_unknown.push_back(i);
-			else
-			{
-				if(!((_field[i].state == CELL_SAFE) && (_field[i].param == 0)))
-					_changed.insert(i);
-			}
-		}
-		_vanguard = _changed;
-	}*/
 	return res;
 }
 int miner::Move()

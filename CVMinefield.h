@@ -8,6 +8,8 @@
 #include "opencv2/highgui.hpp"
 #include "opencv2/videostab.hpp"
 #include "opencv2/opencv_modules.hpp"
+#include "ScreenFrames/PartFrames/PartFrames.h"
+
 
 //#define PARSE_FULL // parse all ROI all the time
 //#define PARSE_SINGLE // parse only one cell
@@ -41,14 +43,14 @@ public:
 	std::vector<mine_cell> GetFieldView();
 	
 	void SetParser(mine_parser* parser);
-	void SetFrameSource(cv::Ptr<cv::videostab::IFrameSource> frames);
+	void SetFrameSource(cv::Ptr<part_frames> frames);
 	bool RefreshState();
 protected:
 	void ClickMine(unsigned row, unsigned col, bool flag);
 protected:
 	mine_parser* _parser;
 	field_params _params;
-	cv::Ptr<cv::videostab::IFrameSource> _frames;
+	cv::Ptr<part_frames> _frames;
 	bool _last_frame;
 };
 
