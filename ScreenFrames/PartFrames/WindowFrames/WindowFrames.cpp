@@ -21,6 +21,7 @@ cv::Mat window_frames::nextFrame()
 	cv::Mat res;
 	if(!IsWindow(_hwnd))
 		return res;
+	_window_selected = true;
 	if(_client)
 	{
 		res = hwnd2mat(_hwnd);
