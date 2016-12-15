@@ -38,7 +38,7 @@ cv::Point window_frames::GetOffset()
 	if(!IsWindow(_hwnd))
 		return res;
 	res = cv::Point(0, 0);
-	if(_hwnd)
+	if(_client)
 	{
 		ClientToScreen(_hwnd, (POINT*)&res);
 	}
