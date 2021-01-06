@@ -1,7 +1,7 @@
 #include "CVMinefield.h"
 #include <windows.h>
 #include <iostream>
-#include "common/common.hpp"
+#include "OpenCV_common.hpp"
 
 cv_minefield::cv_minefield()
 {

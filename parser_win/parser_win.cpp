@@ -1,6 +1,7 @@
 #include "parser_win.h"
-#include "../FeatureDetector/FeatureDetector.h"
-#include "../common/common.hpp"
+#include "FeatureDetector/FeatureDetector.h"
+#include "FeatureDetector/Draw/DrawDebug.h"
+#include "OpenCV_common.hpp"
 #include <iostream>
 #pragma warning(disable: 4800)
 parser_win::parser_win()
@@ -112,12 +113,12 @@ std::vector<unsigned> parser_win::GetChanged(cv::Mat new_field_img)
 		return res;
 	cv::Mat changed;
 	cv::absdiff(prev_field, new_field_img, changed);
-	cv::cvtColor(changed, changed, CV_BGR2GRAY);
+	cv::cvtColor(changed, changed, cv::COLOR_BGR2GRAY);
 	changed *= 255; 
 	std::vector<Obj2d> objects = FindObjects(changed, std::vector<type_condition>(), std::vector<int>(), cv::RETR_EXTERNAL);
 	for(auto obj: objects)
 	{
-		DrawContours(obj.contours, {cv::Scalar::all(255)}, changed);
+		DrawContours(obj.contours, {cv::Scalar::all(255)}, changed, cv::Point(), 1, cv::FILLED);
 	}
 	bitwise_and(changed, cell_points, changed);
 	std::vector<cv::Point> center_points;

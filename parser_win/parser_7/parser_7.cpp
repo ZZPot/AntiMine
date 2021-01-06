@@ -1,6 +1,6 @@
 #include "parser_7.h"
-#include "../../FeatureDetector/FeatureDetector.h"
-#include "../../common/common.hpp"
+#include "FeatureDetector/FeatureDetector.h"
+#include "OpenCV_common.hpp"
 #include <iostream>
 #include <windows.h>
 
@@ -99,7 +99,7 @@ mine_cell parser_7::ParseCell(cv::Mat img_roi, unsigned row, unsigned col)
 cv::Rect parser_7::GetFieldRect(cv::Mat img_roi)
 {
 	cv::Mat img_hsv;
-	cv::cvtColor(img_roi, img_hsv, CV_BGR2HSV);
+	cv::cvtColor(img_roi, img_hsv, cv::COLOR_BGR2HSV);
 	cv::Mat img_border_ranged;
 	cv::inRange(img_hsv, frame_colors_7[0], frame_colors_7[1], img_border_ranged);
 	std::vector<type_condition> cond;
@@ -142,7 +142,7 @@ mine_cell parser_7::GetCell(cv::Mat img)
 		}
 	}
 	cv::Mat img_hsv;
-	cv::cvtColor(img, img_hsv, CV_BGR2HSV);
+	cv::cvtColor(img, img_hsv, cv::COLOR_BGR2HSV);
 	for(unsigned i = 0; i < field_colors_hsv_7.size(); i++)
 	{
 		cv::Mat hsv_ranged;

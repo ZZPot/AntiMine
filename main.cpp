@@ -4,8 +4,9 @@
 #include "parser_win/parser_7/parser_7.h"
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
-#include <opencv2/tracking/tracker.hpp>
+#include <opencv2/tracking/tracking.hpp>
 #include <windows.h>
+#include <iostream>
 using namespace cv;
 
 int main()

@@ -1,5 +1,5 @@
 #include "parser_xp.h"
-#include "../../FeatureDetector/FeatureDetector.h"
+#include "FeatureDetector/FeatureDetector.h"
 #include <iostream>
 #pragma warning(disable: 4800)
 

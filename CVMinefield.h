@@ -20,7 +20,7 @@ struct field_params
 	unsigned cols;
 	unsigned size;
 	std::vector<mine_cell> mines;
-	std::vector<cv::Point> cells; // top left corner
+	std::vector<cv::Point> cells; // top left corners
 	cv::Point reset;
 };
 

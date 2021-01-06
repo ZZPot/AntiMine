@@ -62,7 +62,7 @@ void DrawCell(cv::Mat img, cv::Rect rect, mine_cell cell)
 		bg_color = field_colors[COLOR_MINE];
 		img_num = ICON_MINE;
 	}
-	cv::rectangle(img, rect, bg_color, CV_FILLED);
+	cv::rectangle(img, rect, bg_color, cv::FILLED);
 	cv::rectangle(img, rect, field_colors[COLOR_GRID], 1);
 	if(cell.state == CELL_UNKNOWN)
 		return;
